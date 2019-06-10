@@ -2,14 +2,16 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Random;
 
 public class money implements Runnable {
 
   static HashMap<String, Integer> customers;
   static HashMap<String, Integer> banks;
-  int numberOfCustomers;
+  static int numberOfCustomers;
   int numberOfBanks;
 
   public money(HashMap<String, Integer> customersMap,
@@ -36,6 +38,9 @@ public class money implements Runnable {
       while ((st = br.readLine()) != null) {
         String[] content = st.replace("{", "").replace(".", "").replace("}", "").split(",");
         data.put(content[0], Integer.parseInt(content[1]));
+        if (filename.contains("customer")) {
+          numberOfCustomers = numberOfCustomers + 1;
+        }
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -45,34 +50,79 @@ public class money implements Runnable {
 
   @Override
   public void run() {
-    Customer customer = getRandomValidCustomer(customers, numberOfCustomers);
+    Customer customer = getRandomValidCustomer(removeProcessedCustomer(customers),
+        numberOfCustomers);
+    System.out.println(customer);
+    if (customer == null) {
+      System.out.println("All Customer served");
+    }
     for (String name : customers.keySet()) {
       String loanRequest = customers.get(name).toString();
       System.out.println(name + " " + loanRequest);
     }
   }
 
+  private HashMap<String, Integer> removeProcessedCustomer(HashMap<String, Integer> customerMap) {
+    ArrayList<String> serverdCusomters = new ArrayList<>();
+    for (String customername : customerMap.keySet()) {
+      if (customerMap.get(customername) == 0) {
+        synchronized (this) {
+          serverdCusomters.add(customername);
+        }
+      }
+    }
+    for (String servedCustomer : serverdCusomters) {
+      customers.remove(servedCustomer);
+      numberOfCustomers = numberOfCustomers - 1;
+    }
+    return customers;
+  }
+
   private Customer getRandomValidCustomer(HashMap<String, Integer> customers,
       int numberOfCustomers) {
-    Random random = new Random();
-    int randomCustomer = random.nextInt(numberOfCustomers + 1);
-    Object[] customerArray = customers.keySet().toArray();
-    String name = (String) customerArray[randomCustomer];
-    if (customers.get(name) > 0) {
-      Customer validCustomer = new Customer(name, customers.get(name));
-      return validCustomer;
+    if (customers.size() == 0) {
+      return null;
     }
-    return null;
+    Customer validCustomer = null;
+    while (true) {
+      Random random = new Random();
+      int randomCustomer = random.nextInt(numberOfCustomers);
+      Object[] customerArray = customers.keySet().toArray();
+      String name = (String) customerArray[randomCustomer];
+      if (customers.get(name) > 0) {
+        validCustomer = new Customer(name, customers.get(name));
+        break;
+      } else {
+        continue;
+      }
+
+    }
+    return validCustomer;
 
   }
 
   private class Customer {
 
-    int name;
+    String name;
     int loanRequested;
 
     public Customer(String name, Integer integer) {
+      this.name = name;
+      this.loanRequested = integer;
+    }
 
+    @Override
+    public String toString() {
+      return "Customer{" +
+          "name=" + name +
+          ", loanRequested=" + loanRequested +
+          '}';
+    }
+
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, loanRequested);
     }
   }
 }
