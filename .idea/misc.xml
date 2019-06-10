@@ -9,5 +9,7 @@
   <component name="PreferredVcsStorage">
     <preferredVcsName>ApexVCS</preferredVcsName>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_10" default="false" project-jdk-name="Erlang 22" project-jdk-type="Erlang SDK" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" default="false" project-jdk-name="Erlang 22" project-jdk-type="Erlang SDK">
+    <output url="file://$PROJECT_DIR$/java_code/out" />
+  </component>
 </project>
