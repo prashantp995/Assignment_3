@@ -50,6 +50,7 @@ public class money implements Runnable {
 
   @Override
   public void run() {
+    Transaction transaction = new Transaction(banks);
     Customer customer = getRandomValidCustomer(removeProcessedCustomer(customers),
         numberOfCustomers);
     System.out.println(customer);
@@ -124,5 +125,17 @@ public class money implements Runnable {
     public int hashCode() {
       return Objects.hash(name, loanRequested);
     }
+  }
+
+
+}
+
+class Transaction {
+
+  static HashMap<String, Integer> banksData = new HashMap<String, Integer>();
+
+  public Transaction(HashMap<String, Integer> banks) {
+    this.banksData = banks;
+
   }
 }
