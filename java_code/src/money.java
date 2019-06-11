@@ -56,6 +56,15 @@ public class money implements Runnable {
     System.out.println(customer);
     if (customer == null) {
       System.out.println("All Customer served");
+    } else {
+      if (customer.loanRequested > 0) {
+        Random random = new Random();
+        int loanRequest = random.nextInt(50 + 1);
+        customer.loanRequested = loanRequest;
+        transaction.setCustomer(customer);
+        Thread thread = new Thread(transaction);
+        thread.start();
+      }
     }
     for (String name : customers.keySet()) {
       String loanRequest = customers.get(name).toString();
@@ -102,40 +111,55 @@ public class money implements Runnable {
 
   }
 
-  private class Customer {
-
-    String name;
-    int loanRequested;
-
-    public Customer(String name, Integer integer) {
-      this.name = name;
-      this.loanRequested = integer;
-    }
-
-    @Override
-    public String toString() {
-      return "Customer{" +
-          "name=" + name +
-          ", loanRequested=" + loanRequested +
-          '}';
-    }
-
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(name, loanRequested);
-    }
-  }
-
 
 }
 
-class Transaction {
+class Transaction implements Runnable {
 
   static HashMap<String, Integer> banksData = new HashMap<String, Integer>();
+  String requestedBank;
+
+  public Customer getCustomer() {
+    return customer;
+  }
+
+  public void setCustomer(Customer customer) {
+    this.customer = customer;
+  }
+
+  Customer customer;
 
   public Transaction(HashMap<String, Integer> banks) {
     this.banksData = banks;
+  }
 
+  @Override
+  public void run() {
+    System.out.println(customer);
+  }
+}
+
+class Customer {
+
+  String name;
+  int loanRequested;
+
+  public Customer(String name, Integer integer) {
+    this.name = name;
+    this.loanRequested = integer;
+  }
+
+  @Override
+  public String toString() {
+    return "Customer{" +
+        "name=" + name +
+        ", loanRequested=" + loanRequested +
+        '}';
+  }
+
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, loanRequested);
   }
 }
