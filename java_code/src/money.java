@@ -51,19 +51,31 @@ public class money implements Runnable {
   @Override
   public void run() {
     Transaction transaction = new Transaction(banks);
-    Customer customer = getRandomValidCustomer(removeProcessedCustomer(customers),
-        numberOfCustomers);
-    System.out.println(customer);
-    if (customer == null) {
-      System.out.println("All Customer served");
-    } else {
-      if (customer.loanRequested > 0) {
-        Random random = new Random();
-        int loanRequest = random.nextInt(50 + 1);
-        customer.loanRequested = loanRequest;
-        transaction.setCustomer(customer);
-        Thread thread = new Thread(transaction);
-        thread.start();
+    boolean isValid = true;
+    while (isValid) {
+
+      Customer customer = getRandomValidCustomer(removeProcessedCustomer(customers),
+          numberOfCustomers);
+      System.out.println(customer);
+      if (customer == null) {
+        System.out.println("All Customer served");
+        isValid = false;
+      } else {
+        if (customer.loanRequested > 0) {
+          Random random = new Random();
+          if (customer.loanRequested > 50) {
+            int loanRequest = random.nextInt(50) + 1;
+            customer.loanRequested = loanRequest;
+          }
+          transaction.setCustomer(customer);
+          Thread thread = new Thread(transaction);
+          thread.start();
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+        }
       }
     }
     for (String name : customers.keySet()) {
@@ -136,6 +148,9 @@ class Transaction implements Runnable {
   @Override
   public void run() {
     System.out.println(customer);
+    int totalmoney = money.customers.get(customer.name);
+    money.customers.put(customer.name, totalmoney - customer.loanRequested);
+    System.out.println(money.customers.get(customer.name));
   }
 }
 
