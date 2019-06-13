@@ -12,7 +12,7 @@ public class money implements Runnable {
   static HashMap<String, Integer> customers;
   static HashMap<String, Integer> banks;
   static int numberOfCustomers;
-  int numberOfBanks;
+  static int numberOfBanks;
 
   public money(HashMap<String, Integer> customersMap,
       HashMap<String, Integer> banksMap) {
@@ -40,6 +40,9 @@ public class money implements Runnable {
         data.put(content[0], Integer.parseInt(content[1]));
         if (filename.contains("customer")) {
           numberOfCustomers = numberOfCustomers + 1;
+        }
+        if (filename.contains("bank")) {
+          numberOfBanks = numberOfBanks + 1;
         }
       }
     } catch (IOException e) {
@@ -123,6 +126,27 @@ public class money implements Runnable {
 
   }
 
+  public static Bank getRandomBank() {
+    if (banks.size() == 0) {
+      return null;
+    }
+    Bank validBank = null;
+    while (true) {
+      Random random = new Random();
+      int randomCustomer = random.nextInt(numberOfBanks);
+      Object[] customerArray = banks.keySet().toArray();
+      String name = (String) customerArray[randomCustomer];
+      if (banks.get(name) > 0) {
+        validBank = new Bank(name, banks.get(name));
+        break;
+      } else {
+        continue;
+      }
+
+    }
+    return validBank;
+  }
+
 
 }
 
@@ -148,6 +172,7 @@ class Transaction implements Runnable {
   @Override
   public void run() {
     System.out.println(customer);
+    System.out.println(money.getRandomBank());
     int totalmoney = money.customers.get(customer.name);
     money.customers.put(customer.name, totalmoney - customer.loanRequested);
     System.out.println(money.customers.get(customer.name));
@@ -176,5 +201,40 @@ class Customer {
   @Override
   public int hashCode() {
     return Objects.hash(name, loanRequested);
+  }
+}
+
+class Bank {
+
+  String name;
+  int fundAvailable;
+
+  public Bank(String name, Integer integer) {
+    this.name = name;
+    this.fundAvailable = integer;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public int getFundAvailable() {
+    return fundAvailable;
+  }
+
+  public void setFundAvailable(int fundAvailable) {
+    this.fundAvailable = fundAvailable;
+  }
+
+  @Override
+  public String toString() {
+    return "Bank{" +
+        "name='" + name + '\'' +
+        ", fundAvailable=" + fundAvailable +
+        '}';
   }
 }
