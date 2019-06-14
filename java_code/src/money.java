@@ -3,34 +3,37 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class money implements Runnable {
 
-  static HashMap<String, Integer> customers;
-  static HashMap<String, Integer> banks;
+  static ConcurrentHashMap<String, Integer> customers;
+  static ConcurrentHashMap<String, Integer> banks;
   static int numberOfCustomers;
   static int numberOfBanks;
+  static HashSet<String> avoidBankList = new HashSet<>();
+  static boolean nobankcanserve = false;
 
-  public money(HashMap<String, Integer> customersMap,
-      HashMap<String, Integer> banksMap) {
+  public money(ConcurrentHashMap<String, Integer> customersMap,
+      ConcurrentHashMap<String, Integer> banksMap) {
     customers = customersMap;
     banks = banksMap;
   }
 
   public static void main(String[] args) {
-    HashMap<String, Integer> customers = readFile("customers.txt");
-    HashMap<String, Integer> banks = readFile("banks.txt");
+    ConcurrentHashMap<String, Integer> customers = readFile("customers.txt");
+    ConcurrentHashMap<String, Integer> banks = readFile("banks.txt");
     money money = new money(customers, banks);
     money.run();
   }
 
   //ref : https://www.geeksforgeeks.org/different-ways-reading-text-file-java/
-  private static HashMap<String, Integer> readFile(String filename) {
+  private static ConcurrentHashMap<String, Integer> readFile(String filename) {
     File file = new File(filename);
-    HashMap<String, Integer> data = new HashMap<>();
+    ConcurrentHashMap<String, Integer> data = new ConcurrentHashMap<>();
     BufferedReader br = null;
     try {
       br = new BufferedReader(new FileReader(file));
@@ -59,10 +62,14 @@ public class money implements Runnable {
 
       Customer customer = getRandomValidCustomer(removeProcessedCustomer(customers),
           numberOfCustomers);
-      System.out.println(customer);
-      if (customer == null) {
+      if (customer == null || nobankcanserve) {
         System.out.println("All Customer served");
         isValid = false;
+        for (String name : banks.keySet()) {
+          String key = name.toString();
+          String value = banks.get(name).toString();
+          System.out.println(key + " " + value);
+        }
       } else {
         if (customer.loanRequested > 0) {
           Random random = new Random();
@@ -74,7 +81,7 @@ public class money implements Runnable {
           Thread thread = new Thread(transaction);
           thread.start();
           try {
-            Thread.sleep(1000);
+            Thread.sleep(100);
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
@@ -87,7 +94,8 @@ public class money implements Runnable {
     }
   }
 
-  private HashMap<String, Integer> removeProcessedCustomer(HashMap<String, Integer> customerMap) {
+  private ConcurrentHashMap<String, Integer> removeProcessedCustomer(
+      ConcurrentHashMap<String, Integer> customerMap) {
     ArrayList<String> serverdCusomters = new ArrayList<>();
     for (String customername : customerMap.keySet()) {
       if (customerMap.get(customername) == 0) {
@@ -103,7 +111,7 @@ public class money implements Runnable {
     return customers;
   }
 
-  private Customer getRandomValidCustomer(HashMap<String, Integer> customers,
+  private Customer getRandomValidCustomer(ConcurrentHashMap<String, Integer> customers,
       int numberOfCustomers) {
     if (customers.size() == 0) {
       return null;
@@ -127,16 +135,16 @@ public class money implements Runnable {
   }
 
   public static Bank getRandomBank() {
-    if (banks.size() == 0) {
+    if (banks.size() == 0 || allBanksHasZeroBalance() || avoidBankList.size() >= banks.size()) {
       return null;
     }
     Bank validBank = null;
     while (true) {
       Random random = new Random();
-      int randomCustomer = random.nextInt(numberOfBanks);
-      Object[] customerArray = banks.keySet().toArray();
-      String name = (String) customerArray[randomCustomer];
-      if (banks.get(name) > 0) {
+      int randomBank = random.nextInt(numberOfBanks);
+      Object[] bankArray = banks.keySet().toArray();
+      String name = (String) bankArray[randomBank];
+      if (banks.get(name) > 0 && !avoidBankList.contains(name)) {
         validBank = new Bank(name, banks.get(name));
         break;
       } else {
@@ -147,12 +155,23 @@ public class money implements Runnable {
     return validBank;
   }
 
+  private static boolean allBanksHasZeroBalance() {
+    boolean result = true;
+    for (String bank : banks.keySet()) {
+      if (banks.get(bank) != 0) {
+        result = false;
+        break;
+      }
+    }
+    return result;
+  }
+
 
 }
 
 class Transaction implements Runnable {
 
-  static HashMap<String, Integer> banksData = new HashMap<String, Integer>();
+  static ConcurrentHashMap<String, Integer> banksData = new ConcurrentHashMap<String, Integer>();
   String requestedBank;
 
   public Customer getCustomer() {
@@ -165,17 +184,37 @@ class Transaction implements Runnable {
 
   Customer customer;
 
-  public Transaction(HashMap<String, Integer> banks) {
+  public Transaction(ConcurrentHashMap<String, Integer> banks) {
     this.banksData = banks;
   }
 
   @Override
   public void run() {
-    System.out.println(customer);
-    System.out.println(money.getRandomBank());
-    int totalmoney = money.customers.get(customer.name);
-    money.customers.put(customer.name, totalmoney - customer.loanRequested);
-    System.out.println(money.customers.get(customer.name));
+    Bank bank = money.getRandomBank();
+    if (bank != null) {
+      System.out
+          .println(
+              customer.name + " requested for " + customer.loanRequested + " from " + bank.name);
+      int totalFund = money.banks.get(bank.name);
+      if (totalFund > customer.loanRequested) {
+        int totalmoney = money.customers.get(customer.name);
+        money.customers.put(customer.name, totalmoney - customer.loanRequested);
+        money.banks.put(bank.name, totalFund - customer.loanRequested);
+        System.out.println(
+            bank.name + " approved  request of " + customer.name + " for "
+                + customer.loanRequested);
+      } else {
+        System.out.println(
+            bank.name + " rejected  request of " + customer.name + " for "
+                + customer.loanRequested);
+        money.avoidBankList.add(bank.name);
+      }
+    } else {
+      money.nobankcanserve = true;
+      return;
+    }
+
+
   }
 }
 
