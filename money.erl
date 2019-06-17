@@ -11,3 +11,6 @@
 
 %% API
 -export([]).
+master() ->
+  register(master, self),
+  customer:getCustomerData().

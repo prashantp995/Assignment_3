@@ -3,7 +3,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +14,7 @@ public class money implements Runnable {
   static ConcurrentHashMap<String, Integer> banks;
   static int numberOfCustomers;
   static int numberOfBanks;
-  static HashSet<String> avoidBankList = new HashSet<>();
+  static HashMap<String, ArrayList<String>> avoidBankList = new HashMap<>();
   static boolean nobankcanserve = false;
 
   public money(ConcurrentHashMap<String, Integer> customersMap,
@@ -134,7 +134,7 @@ public class money implements Runnable {
 
   }
 
-  public static Bank getRandomBank() {
+  public static Bank getRandomBank(String customerName) {
     if (banks.size() == 0 || allBanksHasZeroBalance() || avoidBankList.size() >= banks.size()) {
       return null;
     }
@@ -144,7 +144,13 @@ public class money implements Runnable {
       int randomBank = random.nextInt(numberOfBanks);
       Object[] bankArray = banks.keySet().toArray();
       String name = (String) bankArray[randomBank];
-      if (banks.get(name) > 0 && !avoidBankList.contains(name)) {
+      ArrayList<String> avoidedBank = new ArrayList<>();
+      if (avoidBankList != null) {
+        if (avoidBankList.containsKey(customerName)) {
+          avoidedBank = avoidBankList.get(customerName);
+        }
+      }
+      if (banks.get(name) > 0 && !avoidedBank.contains(name)) {
         validBank = new Bank(name, banks.get(name));
         break;
       } else {
@@ -190,7 +196,7 @@ class Transaction implements Runnable {
 
   @Override
   public void run() {
-    Bank bank = money.getRandomBank();
+    Bank bank = money.getRandomBank(customer.name);
     if (bank != null) {
       System.out
           .println(
@@ -207,7 +213,18 @@ class Transaction implements Runnable {
         System.out.println(
             bank.name + " rejected  request of " + customer.name + " for "
                 + customer.loanRequested);
-        money.avoidBankList.add(bank.name);
+        ArrayList<String> arrayList = new ArrayList<String>();
+        ArrayList<String> temp;
+        if (money.avoidBankList.containsKey(customer.name)) {
+          temp = money.avoidBankList.get(customer.name);
+          temp.add(bank.name);
+          money.avoidBankList.put(customer.name, temp);
+        } else {
+          temp = new ArrayList<>();
+          temp.add(bank.name);
+          money.avoidBankList.put(customer.name, temp);
+        }
+
       }
     } else {
       money.nobankcanserve = true;

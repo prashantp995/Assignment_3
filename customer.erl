@@ -10,4 +10,6 @@
 -author("prash").
 
 %% API
--export([]).
+-export([getCustomerData/0]).
+getCustomerData() ->
+  io:fwrite("get customer data is called").
