@@ -141,7 +141,7 @@ public class money implements Runnable {
   }
 
   public static Bank getRandomBank(String customerName) {
-    if (banks.size() == 0 || allBanksHasZeroBalance()) {
+    if (banks.size() == 0 || allBanksHasZeroBalance() || bankCanserver()) {
       return null;
     }
     Bank validBank = null;
@@ -165,6 +165,18 @@ public class money implements Runnable {
 
     }
     return validBank;
+  }
+
+  private static boolean bankCanserver() {
+    boolean result = false;
+    if (avoidBankList.size() > 0) {
+      for (String customer : avoidBankList.keySet()) {
+        if (avoidBankList.get(customer).size() == numberOfBanks) {
+          result = true;
+        }
+      }
+    }
+    return result;
   }
 
   private static boolean allBanksHasZeroBalance() {
