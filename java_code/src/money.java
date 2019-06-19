@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class money implements Runnable {
 
   static ConcurrentHashMap<String, Integer> customers;
+  static ConcurrentHashMap<String, Integer> servedcustomers = new ConcurrentHashMap<>();
   static ConcurrentHashMap<String, Integer> banks;
   static int numberOfCustomers;
   static int numberOfBanks;
@@ -88,6 +89,10 @@ public class money implements Runnable {
         }
       }
     }
+    for (String name : servedcustomers.keySet()) {
+      String loanRequest = servedcustomers.get(name).toString();
+      System.out.println(name + " " + loanRequest);
+    }
     for (String name : customers.keySet()) {
       String loanRequest = customers.get(name).toString();
       System.out.println(name + " " + loanRequest);
@@ -105,6 +110,7 @@ public class money implements Runnable {
       }
     }
     for (String servedCustomer : serverdCusomters) {
+      money.servedcustomers.put(servedCustomer, customers.get(servedCustomer));
       customers.remove(servedCustomer);
       numberOfCustomers = numberOfCustomers - 1;
     }
@@ -135,7 +141,7 @@ public class money implements Runnable {
   }
 
   public static Bank getRandomBank(String customerName) {
-    if (banks.size() == 0 || allBanksHasZeroBalance() || avoidBankList.size() >= banks.size()) {
+    if (banks.size() == 0 || allBanksHasZeroBalance()) {
       return null;
     }
     Bank validBank = null;
@@ -228,7 +234,6 @@ class Transaction implements Runnable {
       }
     } else {
       money.nobankcanserve = true;
-      return;
     }
 
 
